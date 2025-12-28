@@ -92,8 +92,17 @@ class SignalScanner:
         regime_result = self._evaluate_regime(tf_data)
         now = self.provider.server_time()
         news_result = self.news_filter.evaluate(now)
+        if not regime_result.passed:
+            logger.info(
+                "Regime filter blocked signal",
+                extra={"symbol": symbol, "regime": regime_result.reason},
+            )
+            return []
         if not (vol_result.passed and news_result.passed):
-            logger.info("Filter blocked signal", extra={"symbol": symbol, "vol": vol_result.reason, "news": news_result.reason})
+            logger.info(
+                "Filter blocked signal",
+                extra={"symbol": symbol, "vol": vol_result.reason, "news": news_result.reason},
+            )
             return []
         signals: List[SignalCandidate] = []
         for strategy in self.strategies:
@@ -102,6 +111,7 @@ class SignalScanner:
         for signal in signals:
             signal.filters["volatility"] = vol_result.reason
             signal.filters["news"] = news_result.reason
+            signal.filters["regime"] = regime_result.reason
             if not self._passes_backtest_gate(signal, backtest_gate):
                 continue
             if not self._apply_cooldown(signal):

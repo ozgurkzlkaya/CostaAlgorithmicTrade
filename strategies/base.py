@@ -22,4 +22,6 @@ class Strategy(abc.ABC):
             "generated_at": datetime.utcnow(),
         }
         defaults.update(kwargs)
+        if "direction" in defaults and isinstance(defaults["direction"], str):
+            defaults["direction"] = defaults["direction"].upper()
         return SignalCandidate(**defaults)

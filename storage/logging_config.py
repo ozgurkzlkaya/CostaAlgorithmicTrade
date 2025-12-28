@@ -7,14 +7,8 @@ from pathlib import Path
 from typing import Dict
 
 
-def setup_logging(app_log: str, signal_log: str, level: str = "INFO"):
-    Path(app_log).parent.mkdir(parents=True, exist_ok=True)
-    Path(signal_log).parent.mkdir(parents=True, exist_ok=True)
-    logging.basicConfig(level=getattr(logging, level.upper(), logging.INFO))
-    app_handler = RotatingFileHandler(app_log, maxBytes=1_000_000, backupCount=3)
-    signal_handler = RotatingFileHandler(signal_log, maxBytes=1_000_000, backupCount=3)
-
-    def formatter(record: logging.LogRecord) -> str:
+class JsonFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:  # type: ignore[override]
         payload: Dict = {
             "level": record.levelname,
             "name": record.name,
@@ -26,8 +20,17 @@ def setup_logging(app_log: str, signal_log: str, level: str = "INFO"):
             payload["exception"] = True
         return json.dumps(payload)
 
-    app_handler.setFormatter(logging.Formatter("%(message)s"))
-    signal_handler.setFormatter(logging.Formatter("%(message)s"))
+
+def setup_logging(app_log: str, signal_log: str, level: str = "INFO"):
+    Path(app_log).parent.mkdir(parents=True, exist_ok=True)
+    Path(signal_log).parent.mkdir(parents=True, exist_ok=True)
+    logging.basicConfig(level=getattr(logging, level.upper(), logging.INFO))
+    app_handler = RotatingFileHandler(app_log, maxBytes=1_000_000, backupCount=3)
+    signal_handler = RotatingFileHandler(signal_log, maxBytes=1_000_000, backupCount=3)
+
+    formatter = JsonFormatter()
+    app_handler.setFormatter(formatter)
+    signal_handler.setFormatter(formatter)
 
     root = logging.getLogger()
     root.addHandler(app_handler)

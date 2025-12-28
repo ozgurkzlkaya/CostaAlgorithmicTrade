@@ -10,15 +10,14 @@ def bollinger_bands(candles: List[Candle], period: int = 20, std_dev: float = 2.
     closes = [c.close for c in candles]
     if len(closes) < period:
         return [], [], []
-    upper: List[float] = []
-    middle: List[float] = []
-    lower: List[float] = []
-    for i in range(period, len(closes) + 1):
-        window = closes[i - period : i]
+    upper: List[float] = [None] * (period - 1)
+    middle: List[float] = [None] * (period - 1)
+    lower: List[float] = [None] * (period - 1)
+    for i in range(period - 1, len(closes)):
+        window = closes[i - period + 1 : i + 1]
         m = mean(window)
         s = pstdev(window)
         middle.append(m)
         upper.append(m + std_dev * s)
         lower.append(m - std_dev * s)
-    padding = [closes[0]] * (len(closes) - len(upper))
-    return padding + upper, padding + middle, padding + lower
+    return upper, middle, lower

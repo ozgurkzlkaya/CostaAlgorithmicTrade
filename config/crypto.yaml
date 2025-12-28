@@ -1,6 +1,6 @@
 mode: CRYPTO_FUTURES
 symbols:
-  universe: "USDT_PERPETUAL"
+  universe: ["BTCUSDT", "ETHUSDT"]
   min_volume_usd: 5000000
   min_price: 0.01
   exclude: []

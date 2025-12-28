@@ -13,10 +13,6 @@ def clamp01(value: float) -> float:
     return max(0.0, min(1.0, value))
 
 
-def clamp_range(value: float, min_value: float, max_value: float) -> float:
-    return max(min_value, min(max_value, value))
-
-
 class ScoreEngine:
     def __init__(self, config: Dict):
         self.config = config or {}
@@ -95,10 +91,11 @@ class ScoreEngine:
         if candidate.strategy == "breakout":
             closes = [c.close for c in candles_15m]
             lookback = int(self.config.get("params", {}).get("breakout_lookback", 20))
-            if len(closes) < lookback:
+            if len(closes) < lookback + 1:
                 return 0.0
-            high = max(closes[-lookback:])
-            low = min(closes[-lookback:])
+            prior_window = closes[-(lookback + 1) : -1]
+            high = max(prior_window)
+            low = min(prior_window)
             if candidate.direction == "LONG":
                 breakout_margin = clamp01(((close - high) / close) / 0.002 if close else 0.0)
             else:
@@ -164,4 +161,4 @@ class ScoreEngine:
             self._component_backtest(context),
         ]
         total = sum(components)
-        return clamp_range(total, 0, 100)
+        return min(100.0, max(0.0, total))
