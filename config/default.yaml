@@ -1,0 +1,59 @@
+mode: CRYPTO_FUTURES
+logging:
+  level: INFO
+  path: logs/app.log
+  signal_path: logs/signals.log
+storage:
+  sqlite_path: storage/bot.sqlite
+  ensure_schema: true
+telegram:
+  enabled: false
+  token: ""
+  chat_id: ""
+scan:
+  timeframes: ["15m", "1h", "4h"]
+  min_closed_candles: 250
+  cooldown_minutes: 30
+  max_signals_per_cycle: 3
+risk:
+  min_rr: 2.0
+  default_rr: 2.0
+  atr_multiplier: 1.5
+  swing_lookback: 5
+strategies:
+  trend_following:
+    enabled: true
+    ema_fast: 20
+    ema_slow: 50
+    rsi_threshold_long: 50
+    rsi_threshold_short: 50
+  breakout:
+    enabled: true
+    lookback: 20
+    rsi_confirm: true
+  mean_reversion:
+    enabled: true
+    bollinger_period: 20
+    bollinger_std: 2
+filters:
+  volatility:
+    enabled: true
+    atr_ratio_high: 0.06
+    atr_ratio_low: 0.01
+  news:
+    enabled: false
+    pre_event_block_minutes: 30
+    post_event_block_minutes: 30
+    blackout_windows: []
+  market_regime:
+    enabled: true
+    btc_symbol: "BTCUSDT"
+    breadth_top_n: 20
+    min_trending_ratio: 0.6
+backtest:
+  enabled: true
+  min_trades: 50
+  min_profit_factor: 1.2
+  max_drawdown: 0.25
+  train_ratio: 0.7
+  commission: 0.0004
