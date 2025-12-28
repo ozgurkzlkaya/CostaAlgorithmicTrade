@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
 from data.models import Candle
 
 
-def average_true_range(candles: List[Candle], period: int = 14) -> List[float]:
+def average_true_range(candles: List[Candle], period: int = 14) -> List[Optional[float]]:
     length = len(candles)
     if length < period + 1:
         return [None] * length
@@ -17,7 +17,7 @@ def average_true_range(candles: List[Candle], period: int = 14) -> List[float]:
         tr = max(current.high - current.low, abs(current.high - prev.close), abs(current.low - prev.close))
         trs.append(tr)
 
-    atr_values: List[float | None] = [None] * length
+    atr_values: List[Optional[float]] = [None] * length
     atr = sum(trs[:period]) / period
     atr_values[period] = atr
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from data.models import Candle
 from indicators.atr import average_true_range
@@ -32,7 +32,9 @@ class VolatilityFilter:
         atr_values = average_true_range(candles)
         if not atr_values:
             return VolatilityFilterResult(False, "insufficient_data")
-        atr = atr_values[-1]
+        atr = self._last_value(atr_values)
+        if atr is None:
+            return VolatilityFilterResult(False, "insufficient_data")
         price = candles[-1].close
         ratio = atr / price if price else 0
         if ratio > self.high:
@@ -40,3 +42,10 @@ class VolatilityFilter:
         if ratio < self.low:
             return VolatilityFilterResult(False, f"atr_ratio_low:{ratio:.4f}")
         return VolatilityFilterResult(True, f"atr_ratio_ok:{ratio:.4f}")
+
+    @staticmethod
+    def _last_value(values: List[Optional[float]]) -> Optional[float]:
+        for value in reversed(values):
+            if value is not None:
+                return value
+        return None

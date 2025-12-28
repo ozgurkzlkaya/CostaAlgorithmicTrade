@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
 from data.models import SignalCandidate, TimeframeData
 from indicators.atr import average_true_range
@@ -10,10 +10,11 @@ from strategies.base import Strategy
 
 
 def _donchian_high_low(closes: List[float], lookback: int):
-    if len(closes) < lookback:
+    if len(closes) < lookback + 1:
         return None, None
-    high = max(closes[-lookback:])
-    low = min(closes[-lookback:])
+    prior = closes[-(lookback + 1) : -1]
+    high = max(prior)
+    low = min(prior)
     return high, low
 
 
@@ -35,7 +36,7 @@ class BreakoutStrategy(Strategy):
         if breakout_high is None:
             return []
         atr_values = average_true_range(tf_15m)
-        atr = atr_values[-1] if atr_values else 0
+        atr = _last_non_none(atr_values) if atr_values else None
         rsi_values = relative_strength_index(tf_1h)
         rsi_ok_long = not self.rsi_confirm or (rsi_values and rsi_values[-1] > 50)
         rsi_ok_short = not self.rsi_confirm or (rsi_values and rsi_values[-1] < 50)
@@ -45,7 +46,12 @@ class BreakoutStrategy(Strategy):
         signals: List[SignalCandidate] = []
 
         if entry_price >= breakout_high and rsi_ok_long:
-            sl, tp, rr = risk.determine_levels(entry_price, tf_15m, direction="LONG", atr_override=atr)
+            sl, tp, rr = risk.determine_levels(
+                entry_price,
+                tf_15m,
+                direction="LONG",
+                atr_override=atr if atr is not None else 0,
+            )
             if rr >= risk.min_rr:
                 signals.append(
                     self._signal(
@@ -63,7 +69,12 @@ class BreakoutStrategy(Strategy):
                     )
                 )
         if entry_price <= breakout_low and rsi_ok_short:
-            sl, tp, rr = risk.determine_levels(entry_price, tf_15m, direction="SHORT", atr_override=atr)
+            sl, tp, rr = risk.determine_levels(
+                entry_price,
+                tf_15m,
+                direction="SHORT",
+                atr_override=atr if atr is not None else 0,
+            )
             if rr >= risk.min_rr:
                 signals.append(
                     self._signal(
@@ -81,3 +92,10 @@ class BreakoutStrategy(Strategy):
                     )
                 )
         return signals
+
+
+def _last_non_none(values: List[Optional[float]]) -> Optional[float]:
+    for value in reversed(values):
+        if value is not None:
+            return value
+    return None

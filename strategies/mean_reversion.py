@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
 from data.models import SignalCandidate, TimeframeData
 from indicators.bollinger import bollinger_bands
@@ -25,8 +25,10 @@ class MeanReversionStrategy(Strategy):
         if not (tf_4h and tf_15m):
             return []
         upper, _, lower = bollinger_bands(tf_15m, self.bollinger_period, self.bollinger_std)
+        upper_last = _last_non_none(upper)
+        lower_last = _last_non_none(lower)
         rsi = relative_strength_index(tf_15m)
-        if not upper or not rsi:
+        if upper_last is None or lower_last is None or not rsi:
             return []
         entry_price = tf_15m[-1].close
         risk = RiskManager()
@@ -35,7 +37,7 @@ class MeanReversionStrategy(Strategy):
         trending_up = tf_4h[-1].close > tf_4h[0].close
         trending_down = tf_4h[-1].close < tf_4h[0].close
 
-        if entry_price <= lower[-1] and rsi[-1] < self.rsi_os and not trending_down:
+        if entry_price <= lower_last and rsi[-1] < self.rsi_os and not trending_down:
             sl, tp, rr = risk.determine_levels(entry_price, tf_15m, direction="LONG")
             if rr >= risk.min_rr:
                 signals.append(
@@ -53,7 +55,7 @@ class MeanReversionStrategy(Strategy):
                         filters={"trend_bias": "Range/Bullish" if trending_up else "Neutral"},
                     )
                 )
-        if entry_price >= upper[-1] and rsi[-1] > self.rsi_ob and not trending_up:
+        if entry_price >= upper_last and rsi[-1] > self.rsi_ob and not trending_up:
             sl, tp, rr = risk.determine_levels(entry_price, tf_15m, direction="SHORT")
             if rr >= risk.min_rr:
                 signals.append(
@@ -72,3 +74,10 @@ class MeanReversionStrategy(Strategy):
                     )
                 )
         return signals
+
+
+def _last_non_none(values: List[Optional[float]]) -> Optional[float]:
+    for value in reversed(values):
+        if value is not None:
+            return value
+    return None

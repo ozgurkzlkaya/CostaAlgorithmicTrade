@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from data.models import SignalCandidate, TimeframeData
 from indicators.bollinger import bollinger_bands
@@ -103,12 +103,14 @@ class ScoreEngine:
             return 15 * breakout_margin
         # mean_reversion
         upper, _, lower = bollinger_bands(candles_15m, period=20, std_dev=2)
-        if not upper or not lower:
+        upper_last = _last_non_none(upper)
+        lower_last = _last_non_none(lower)
+        if upper_last is None or lower_last is None:
             return 0.0
         if candidate.direction == "LONG":
-            band_margin = clamp01(((lower[-1] - close) / close) / 0.002 if close else 0.0)
+            band_margin = clamp01(((lower_last - close) / close) / 0.002 if close else 0.0)
         else:
-            band_margin = clamp01(((close - upper[-1]) / close) / 0.002 if close else 0.0)
+            band_margin = clamp01(((close - upper_last) / close) / 0.002 if close else 0.0)
         return 15 * band_margin
 
     def _component_vol_penalty(self, candidate: SignalCandidate, context: ScoreContext) -> float:
@@ -162,3 +164,10 @@ class ScoreEngine:
         ]
         total = sum(components)
         return min(100.0, max(0.0, total))
+
+
+def _last_non_none(values: List[Optional[float]]) -> Optional[float]:
+    for value in reversed(values):
+        if value is not None:
+            return value
+    return None
