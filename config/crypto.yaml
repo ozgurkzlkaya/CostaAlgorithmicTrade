@@ -1,0 +1,18 @@
+mode: CRYPTO_FUTURES
+symbols:
+  universe: "USDT_PERPETUAL"
+  min_volume_usd: 5000000
+  min_price: 0.01
+  exclude: []
+providers:
+  market: "ccxt"
+  exchange: "binance"
+  rate_limit: true
+  cache: true
+filters:
+  spread:
+    max_relative_spread: 0.002
+  liquidity:
+    min_24h_usd_volume: 5000000
+  wick:
+    max_wick_ratio: 0.05

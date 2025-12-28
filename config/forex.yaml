@@ -1,0 +1,13 @@
+mode: FOREX
+symbols:
+  pairs: ["XAUUSD", "GBPUSD", "EURUSD", "GBPJPY", "EURJPY"]
+providers:
+  market: "stub"
+  rate_limit: true
+filters:
+  news:
+    enabled: true
+    pre_event_block_minutes: 30
+    post_event_block_minutes: 30
+    blackout_windows:
+      - {start: "2024-01-01T12:00:00Z", end: "2024-01-01T13:00:00Z", reason: "Sample event"}
