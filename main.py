@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import sys
 from datetime import datetime
 
 from backtest.runner import BacktestRunner
@@ -28,9 +29,13 @@ def build_provider(mode: str, config: dict):
     return StubCryptoProvider(exchange=config.get("exchange", "binance"), cache=config.get("cache", True))
 
 
+def _parse_iso8601(value: str) -> datetime:
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
 def build_news_filter(cfg: dict) -> NewsFilter:
     windows = [
-        BlackoutWindow(start=datetime.fromisoformat(item["start"]), end=datetime.fromisoformat(item["end"]), reason=item.get("reason", ""))
+        BlackoutWindow(start=_parse_iso8601(item["start"]), end=_parse_iso8601(item["end"]), reason=item.get("reason", ""))
         for item in cfg.get("blackout_windows", [])
     ]
     return NewsFilter(
@@ -42,7 +47,8 @@ def build_news_filter(cfg: dict) -> NewsFilter:
 
 
 def main():
-    config = load_config()
+    override_path = sys.argv[1] if len(sys.argv) > 1 else None
+    config = load_config(override=override_path)
     setup_logging(config["logging"]["path"], config["logging"]["signal_path"], config["logging"].get("level", "INFO"))
     storage = Storage(config["storage"]["sqlite_path"], ensure_schema=config["storage"].get("ensure_schema", True))
     notifier = TelegramNotifier(**config.get("telegram", {}))
@@ -75,6 +81,7 @@ def main():
     news_filter = build_news_filter(config["filters"].get("news", {}))
     regime_filter = MarketRegime(min_trending_ratio=config["filters"].get("market_regime", {}).get("min_trending_ratio", 0.6))
     backtest_gate = {
+        "enabled": config.get("backtest", {}).get("enabled", True),
         "min_trades": config["backtest"].get("min_trades", 0),
         "min_profit_factor": config["backtest"].get("min_profit_factor", 0),
         "max_drawdown": config["backtest"].get("max_drawdown", 1),
@@ -102,9 +109,12 @@ def main():
     if isinstance(symbols, str):
         symbols = [symbols]
     timeframes = config["scan"].get("timeframes", ["15m", "1h", "4h"])
-    for symbol in symbols:
-        signals = scanner.scan_symbol(symbol, timeframes, backtest_gate)
-        scanner.dispatch(signals)
+    try:
+        for symbol in symbols:
+            signals = scanner.scan_symbol(symbol, timeframes, backtest_gate)
+            scanner.dispatch(signals)
+    finally:
+        storage.close()
 
 
 if __name__ == "__main__":

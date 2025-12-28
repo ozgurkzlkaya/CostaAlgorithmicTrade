@@ -9,7 +9,11 @@ from indicators.rsi import relative_strength_index
 from scoring.models import ScoreContext
 
 
-def clamp(value: float, min_value: float = 0.0, max_value: float = 1.0) -> float:
+def clamp01(value: float) -> float:
+    return max(0.0, min(1.0, value))
+
+
+def clamp_range(value: float, min_value: float, max_value: float) -> float:
     return max(min_value, min(max_value, value))
 
 
@@ -41,7 +45,7 @@ class ScoreEngine:
             return 0.0
         close = candles_4h[-1].close
         diff = abs(ema_fast[-1] - ema_slow[-1])
-        trend_strength = clamp((diff / close) / 0.02 if close else 0.0)
+        trend_strength = clamp01((diff / close) / 0.02 if close else 0.0)
         trend_long = ema_fast[-1] > ema_slow[-1]
         trend_short = ema_fast[-1] < ema_slow[-1]
         base = 0.0
@@ -64,17 +68,17 @@ class ScoreEngine:
                 return 0.0
             last = rsi_1h[-1]
             if candidate.direction == "LONG":
-                score = 20 * clamp((last - 50) / 20)
+                score = 20 * clamp01((last - 50) / 20)
             else:
-                score = 20 * clamp((50 - last) / 20)
+                score = 20 * clamp01((50 - last) / 20)
         else:
             if not rsi_15m:
                 return 0.0
             last = rsi_15m[-1]
             if candidate.direction == "LONG":
-                score = 20 * clamp((35 - last) / 15)
+                score = 20 * clamp01((35 - last) / 15)
             else:
-                score = 20 * clamp((last - 65) / 15)
+                score = 20 * clamp01((last - 65) / 15)
         return score
 
     def _component_entry_trigger(self, candidate: SignalCandidate, tf_map: Dict[str, List]) -> float:
@@ -86,7 +90,7 @@ class ScoreEngine:
             ema_20 = exponential_moving_average(candles_15m, 20)
             if not ema_20:
                 return 0.0
-            momentum = clamp((abs(close - ema_20[-1]) / close) / 0.003 if close else 0.0)
+            momentum = clamp01((abs(close - ema_20[-1]) / close) / 0.003 if close else 0.0)
             return 10 + 5 * momentum
         if candidate.strategy == "breakout":
             closes = [c.close for c in candles_15m]
@@ -96,18 +100,18 @@ class ScoreEngine:
             high = max(closes[-lookback:])
             low = min(closes[-lookback:])
             if candidate.direction == "LONG":
-                breakout_margin = clamp(((close - high) / close) / 0.002 if close else 0.0)
+                breakout_margin = clamp01(((close - high) / close) / 0.002 if close else 0.0)
             else:
-                breakout_margin = clamp(((low - close) / close) / 0.002 if close else 0.0)
+                breakout_margin = clamp01(((low - close) / close) / 0.002 if close else 0.0)
             return 15 * breakout_margin
         # mean_reversion
         upper, _, lower = bollinger_bands(candles_15m, period=20, std_dev=2)
         if not upper or not lower:
             return 0.0
         if candidate.direction == "LONG":
-            band_margin = clamp(((lower[-1] - close) / close) / 0.002 if close else 0.0)
+            band_margin = clamp01(((lower[-1] - close) / close) / 0.002 if close else 0.0)
         else:
-            band_margin = clamp(((close - upper[-1]) / close) / 0.002 if close else 0.0)
+            band_margin = clamp01(((close - upper[-1]) / close) / 0.002 if close else 0.0)
         return 15 * band_margin
 
     def _component_vol_penalty(self, candidate: SignalCandidate, context: ScoreContext) -> float:
@@ -123,7 +127,7 @@ class ScoreEngine:
         return score
 
     def _component_rr(self, candidate: SignalCandidate) -> float:
-        return 10 + 5 * clamp((candidate.rr - 2) / 1)
+        return 10 + 5 * clamp01((candidate.rr - 2) / 1)
 
     def _component_strategy_specific(self, candidate: SignalCandidate) -> float:
         if candidate.strategy == "trend_following":
@@ -139,11 +143,11 @@ class ScoreEngine:
         trades = metrics.get("trades")
         score = 0.0
         if pf is not None:
-            score += 6 * clamp((pf - 1.0) / 1.0)
+            score += 6 * clamp01((pf - 1.0) / 1.0)
         if dd is not None:
-            score += 4 * clamp((0.3 - dd) / 0.3)
+            score += 4 * clamp01((0.3 - dd) / 0.3)
         if trades is not None:
-            score += 2 * clamp((trades - 50) / 50)
+            score += 2 * clamp01((trades - 50) / 50)
         return score
 
     def score(self, candidate: SignalCandidate, tf_data: List[TimeframeData], context: ScoreContext) -> float:
@@ -160,4 +164,4 @@ class ScoreEngine:
             self._component_backtest(context),
         ]
         total = sum(components)
-        return clamp(total, 0, 100)
+        return clamp_range(total, 0, 100)

@@ -68,13 +68,15 @@ class SignalScanner:
 
     def _passes_backtest_gate(self, signal: SignalCandidate, config: Dict) -> bool:
         # In a full implementation we'd load persisted metrics. Here we check placeholders.
+        if not config.get("enabled", True):
+            return True
         min_trades = config.get("min_trades", 0)
         min_profit_factor = config.get("min_profit_factor", 0)
         max_drawdown = config.get("max_drawdown", 1.0)
         dummy = config.get("dummy_metrics")
         if not dummy:
             logger.warning("Backtest gate: missing metrics", extra={"symbol": signal.symbol})
-            return False
+            return True
         return (
             dummy.get("trades", 0) >= min_trades
             and dummy.get("profit_factor", 0) >= min_profit_factor

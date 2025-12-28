@@ -9,10 +9,6 @@ providers:
   exchange: "binance"
   rate_limit: true
   cache: true
-filters:
-  spread:
-    max_relative_spread: 0.002
-  liquidity:
-    min_24h_usd_volume: 5000000
-  wick:
-    max_wick_ratio: 0.05
+# Note: spread/liquidity/wick filters are not yet implemented. Keep this file for
+# exchange and symbol universe overrides; filter configuration will be added when
+# the implementations land.

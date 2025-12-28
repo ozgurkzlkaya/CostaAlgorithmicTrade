@@ -14,10 +14,17 @@ class VolatilityFilterResult:
 
 
 class VolatilityFilter:
-    def __init__(self, enabled: bool = True, high: float = 0.06, low: float = 0.01):
+    def __init__(
+        self,
+        enabled: bool = True,
+        high: float = 0.06,
+        low: float = 0.01,
+        atr_ratio_high: float | None = None,
+        atr_ratio_low: float | None = None,
+    ):
         self.enabled = enabled
-        self.high = high
-        self.low = low
+        self.high = high if atr_ratio_high is None else atr_ratio_high
+        self.low = low if atr_ratio_low is None else atr_ratio_low
 
     def evaluate(self, candles: List[Candle]) -> VolatilityFilterResult:
         if not self.enabled or not candles:
