@@ -79,7 +79,11 @@ def main():
 
     vol_filter = VolatilityFilter(**config["filters"]["volatility"])
     news_filter = build_news_filter(config["filters"].get("news", {}))
-    regime_filter = MarketRegime(min_trending_ratio=config["filters"].get("market_regime", {}).get("min_trending_ratio", 0.6))
+    regime_cfg = config["filters"].get("market_regime", {})
+    regime_filter = MarketRegime(
+        enabled=regime_cfg.get("enabled", True),
+        min_trending_ratio=regime_cfg.get("min_trending_ratio", 0.6),
+    )
     backtest_gate = {
         "enabled": config.get("backtest", {}).get("enabled", True),
         "min_trades": config["backtest"].get("min_trades", 0),
