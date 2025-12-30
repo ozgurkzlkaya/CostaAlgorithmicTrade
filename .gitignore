@@ -3,6 +3,3 @@ __pycache__/
 logs/
 storage/*.sqlite
 storage/backtests/
-
-# Keep backtest package tracked
-!backtest/__init__.py
